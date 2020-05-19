@@ -16,8 +16,8 @@ reg [DWIDTH - 1:0] x1_reg [CASCADE_LEVEL-1:0];
 reg [DWIDTH - 1:0] x2_reg [CASCADE_LEVEL-1:0];
 reg [DWIDTH - 1:0] y1_reg [CASCADE_LEVEL-1:0];
 reg [DWIDTH - 1:0] y2_reg [CASCADE_LEVEL-1:0];
-wire [CWIDTH - 1:0] coef_b0, coef_b1, coef_b2, coef_a1, coef_a2;
-wire [DWIDTH - 1:0] x0, x1, x2, y0, y1, y2;
+reg [CWIDTH - 1:0] coef_b0, coef_b1, coef_b2, coef_a1, coef_a2;
+reg [DWIDTH - 1:0] x0, x1, x2, y1, y2; wire [DWIDTH - 1:0] y0;
 // cnt
 reg cnt_en; reg [4:0] cnt; reg din_vld_d1;
 always @(posedge clk or negedge rstn)
@@ -165,21 +165,22 @@ always @(posedge clk or negedge rstn)
         x0_reg[0] <= 0;
     else if (din_vld)
         x0_reg[0] <= din;
+integer i;
 // delay chain
 always @(posedge clk or negedge rstn)
     if (~rstn) begin
-        x0_reg[CASCADE_LEVEL-2:0] <= {(CASCADE_LEVEL-1){DWIDTH{1'b0}}};
-        x1_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
-        x2_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
-        y1_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
-        y2_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
+        for (i=0; i<CASCADE_LEVEL-1; i=i+1) x0_reg[i+1] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) x1_reg[i] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) x2_reg[i] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) y1_reg[i] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) y2_reg[i] <= {DWIDTH{1'b0}};
     end
     else if (~block_en) begin
-        x0_reg[CASCADE_LEVEL-2:0] <= {(CASCADE_LEVEL-1){DWIDTH{1'b0}}};
-        x1_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
-        x2_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
-        y1_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
-        y2_reg[CASCADE_LEVEL-1:0] <= {CASCADE_LEVEL{DWIDTH{1'b0}}};
+        for (i=0; i<CASCADE_LEVEL-1; i=i+1) x0_reg[i+1] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) x1_reg[i] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) x2_reg[i] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) y1_reg[i] <= {DWIDTH{1'b0}};
+        for (i=0; i<CASCADE_LEVEL; i=i+1) y2_reg[i] <= {DWIDTH{1'b0}};
     end
     else if (cnt_en) begin
         if (cnt == 0) begin

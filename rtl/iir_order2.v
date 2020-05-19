@@ -14,11 +14,20 @@ wire [DWIDTH + CWIDTH - 1:0] mult4_out = $signed(y2) * $signed(coef_a2);
 // sum
 wire [CWIDTH + DWIDTH + 3 - 1:0] sum = $signed(mult0_out) + $signed(mult1_out) + $signed(mult2_out) + $signed(mult3_out) + $signed(mult4_out);
 // truncate
-reg [DWIDTH - 1:0] sum_trunc;
-always @(*)
-    sum_trunc = sum[CWIDTH + DWIDTH - 1 : CWIDTH];
+wire [DWIDTH + CWIDTH - 4:0] sum_sat;
+wire [DWIDTH          - 1:0] sum_round;
+sat_handle #(DWIDTH + CWIDTH + 3, DWIDTH + CWIDTH - 3)
+u_sat (
+    .din        ( sum           ),
+    .dout       ( sum_sat       )
+);
+round_handle #(DWIDTH + CWIDTH - 3, DWIDTH)
+u_round (
+    .din        ( sum_sat       ),
+    .dout       ( sum_round     )
+);
 // output
-assign y0 = sum_trunc;
+assign y0 = sum_round;
 
 endmodule
 
