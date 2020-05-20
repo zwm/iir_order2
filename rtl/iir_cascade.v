@@ -5,6 +5,7 @@ module iir_cascade #(parameter CASCADE_LEVEL = 10,
     input clk,
     input rstn,
     input block_en,
+    input [CWIDTH - 1:0] scale,
     input [CASCADE_LEVEL*CWIDTH*5 - 1:0] coefs, // each level has 5 coefs with bitwidth CWIDTH
     input din_vld,
     input [DWIDTH - 1:0] din,
@@ -18,6 +19,21 @@ reg [DWIDTH - 1:0] y1_reg [CASCADE_LEVEL-1:0];
 reg [DWIDTH - 1:0] y2_reg [CASCADE_LEVEL-1:0];
 reg [CWIDTH - 1:0] coef_b0, coef_b1, coef_b2, coef_a1, coef_a2;
 reg [DWIDTH - 1:0] x0, x1, x2, y1, y2; wire [DWIDTH - 1:0] y0;
+// scale
+wire [DWIDTH + CWIDTH - 1:0] din_mult;
+wire [DWIDTH + CWIDTH - 4:0] din_mult_sat;
+wire [DWIDTH          - 1:0] din_mult_round;
+assign din_mult = $signed(din) * $signed(scale); // (24,23) * (24, 21) = (48, 44)
+sat_handle #(DWIDTH + CWIDTH, DWIDTH + CWIDTH - 3) // (48, 44) -> (45, 44)
+u_sat  (
+    .din        ( din_mult          ),
+    .dout       ( din_mult_sat      )
+);
+round_handle #(DWIDTH + CWIDTH - 3, DWIDTH) // (45, 44) -> (24, 23)
+u_round  (
+    .din        ( din_mult_sat      ),
+    .dout       ( din_mult_round    )
+);
 // cnt
 reg cnt_en; reg [4:0] cnt; reg din_vld_d1;
 always @(posedge clk or negedge rstn)
@@ -164,7 +180,7 @@ always @(posedge clk or negedge rstn)
     else if (~block_en)
         x0_reg[0] <= 0;
     else if (din_vld)
-        x0_reg[0] <= din;
+        x0_reg[0] <= din_mult_round;
 integer i;
 // delay chain
 always @(posedge clk or negedge rstn)

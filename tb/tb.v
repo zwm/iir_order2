@@ -19,21 +19,22 @@ initial begin
     #1000_000;
     $finish;
 end
-// din proc
-wire [`DWIDTH + `CWIDTH - 1:0] din_mult;
-wire [`DWIDTH + `CWIDTH - 12:0] din_mult_sat;
-wire [`DWIDTH           - 1:0] din_mult_round;
-assign din_mult = $signed(din_raw) * $signed(din_scale);
-sat_handle #(`DWIDTH + `CWIDTH, `DWIDTH + `CWIDTH - 11)
-u_sat  (
-    .din        ( din_mult      ),
-    .dout       ( din_mult_sat  )
-);
-round_handle #(`DWIDTH + `CWIDTH - 11, `DWIDTH)
-u_round  (
-    .din        ( din_mult_sat  ),
-    .dout       ( din           )
-);
+//// din proc
+//wire [`DWIDTH + `CWIDTH - 1:0] din_mult;
+//wire [`DWIDTH + `CWIDTH - 12:0] din_mult_sat;
+//wire [`DWIDTH           - 1:0] din_mult_round;
+//assign din_mult = $signed(din_raw) * $signed(din_scale);
+//sat_handle #(`DWIDTH + `CWIDTH, `DWIDTH + `CWIDTH - 11)
+//u_sat  (
+//    .din        ( din_mult      ),
+//    .dout       ( din_mult_sat  )
+//);
+//round_handle #(`DWIDTH + `CWIDTH - 11, `DWIDTH)
+//u_round  (
+//    .din        ( din_mult_sat  ),
+//    .dout       ( din           )
+//);
+assign din = din_raw;
 // inst iir
 iir_cascade #(
     .CASCADE_LEVEL      ( `CASCADE_LEVEL    ),
@@ -43,6 +44,7 @@ u_iir_cascade (
     .clk                ( clk               ),
     .rstn               ( rstn              ),
     .block_en           ( block_en          ),
+    .scale              ( din_scale         ),
     .coefs              ( coefs             ),
     .din_vld            ( din_vld           ),
     .din                ( din               ),
@@ -120,10 +122,11 @@ task drv_din;
             for (i = 0; i < `SIM_POINTS; i = i + 1) begin
                 repeat(30) @(posedge clk);
                 @(posedge clk); #1;
-                ret = $fscanf(fp, "%d", din_raw[15:0]);
-                din_raw[`DWIDTH-1:16] = {(`DWIDTH-16){din_raw[15]}};
+                //ret = $fscanf(fp, "%d", din_raw[15:0]);
+                //din_raw[`DWIDTH-1:16] = {(`DWIDTH-16){din_raw[15]}};
                 //ret = $fscanf(fp, "%d", din_raw[23:8]);
                 //din_raw[7:0] = 0;
+                ret = $fscanf(fp, "%d", din_raw[23:0]);
                 if (ret === 0) disable MAIN_LOOP_DIN;
                 din_vld = 1;
                 @(posedge clk); #1;
