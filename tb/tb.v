@@ -15,20 +15,21 @@ initial begin
     sys_init;
     #50_000;
     test_case;
+    test_sum;
     #1000_000;
     $finish;
 end
 // din proc
 wire [`DWIDTH + `CWIDTH - 1:0] din_mult;
-wire [`DWIDTH + `CWIDTH - 4:0] din_mult_sat;
+wire [`DWIDTH + `CWIDTH - 12:0] din_mult_sat;
 wire [`DWIDTH           - 1:0] din_mult_round;
 assign din_mult = $signed(din_raw) * $signed(din_scale);
-sat_handle #(`DWIDTH + `CWIDTH, `DWIDTH + `CWIDTH - 3)
+sat_handle #(`DWIDTH + `CWIDTH, `DWIDTH + `CWIDTH - 11)
 u_sat  (
     .din        ( din_mult      ),
     .dout       ( din_mult_sat  )
 );
-round_handle #(`DWIDTH + `CWIDTH - 3, `DWIDTH)
+round_handle #(`DWIDTH + `CWIDTH - 11, `DWIDTH)
 u_round  (
     .din        ( din_mult_sat  ),
     .dout       ( din           )
@@ -121,6 +122,8 @@ task drv_din;
                 @(posedge clk); #1;
                 ret = $fscanf(fp, "%d", din_raw[15:0]);
                 din_raw[`DWIDTH-1:16] = {(`DWIDTH-16){din_raw[15]}};
+                //ret = $fscanf(fp, "%d", din_raw[23:8]);
+                //din_raw[7:0] = 0;
                 if (ret === 0) disable MAIN_LOOP_DIN;
                 din_vld = 1;
                 @(posedge clk); #1;
@@ -132,7 +135,30 @@ task drv_din;
 endtask
 // checker
 task chk;
+    integer fp, ret, i, tmp;
     begin
+        fp = $fopen({log_path, "/output.txt"}, "r");
+        begin: MAIN_LOOP_CHK
+            while(1) begin
+                @(posedge clk);
+                if (sim_end === 1) begin
+                    disable MAIN_LOOP_CHK; // stop sim
+                end
+                if (din_vld === 1) begin // start check
+                    repeat(15) @(posedge clk); // wait dout stable
+                    ret = $fscanf(fp, "%d", tmp);
+                    if (tmp[`DWIDTH-1:0] === dout[`DWIDTH-1:0]) begin
+                        chk_cnt = chk_cnt;
+                        `ifdef PRINT_PASS_LOG $display("%t, chk_cnt: %d, check pass.", $time, chk_cnt); `endif
+                    end
+                    else begin
+                        err_cnt = err_cnt + 1;
+                        $display("%t, chk_cnt: %d, log: %h, rtl: %h, check FAILED!", $time, chk_cnt, tmp[`DWIDTH-1:0], dout[`DWIDTH-1:0]);
+                    end
+                    chk_cnt = chk_cnt + 1;
+                end
+            end
+        end
     end
 endtask
 // test case
@@ -149,6 +175,24 @@ task test_case;
                 chk;
             end
         join
+    end
+endtask
+// test sum
+task test_sum;
+    begin
+        $display("");
+        $display("-------------------------------------------------");
+        $display("-------------------------------------------------");
+        $display("  chk_cnt: %d, err_cnt: %d", chk_cnt, err_cnt);
+        $display("");
+        if (err_cnt === 0) begin
+            $display("  PASS.");
+        end
+        else begin
+            $display("  FAILED!!!");
+        end
+        $display("-------------------------------------------------");
+        $display("-------------------------------------------------");
     end
 endtask
 
